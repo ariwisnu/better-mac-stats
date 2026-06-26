@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+build/
+dist/
+*.app
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+.swiftpm/
+xcuserdata/
+
+# Local agent / tooling
+.claude/
+.codegraph/
