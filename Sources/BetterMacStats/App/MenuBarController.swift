@@ -10,7 +10,11 @@ final class MenuBarController: NSObject {
 
     private var order: [(kind: ModuleKind, item: NSStatusItem)] = []
     private var controlItem: NSStatusItem?
-    private let popover = NSPopover()
+    /// Recreated on every open. Reusing one NSPopover and swapping its
+    /// contentViewController resized the existing window from its bottom-left
+    /// origin, so popovers of different heights drifted vertically (taller ones
+    /// rode up over the icon, shorter ones dropped far below the menu bar).
+    private var popover: NSPopover?
     private var activeKind: ModuleKind?
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
@@ -26,8 +30,6 @@ final class MenuBarController: NSObject {
     }
 
     func start() {
-        popover.behavior = .transient
-        popover.animates = true
         lastVisible = settings.visibleModules
         lastInterval = settings.refreshInterval
 
@@ -44,7 +46,7 @@ final class MenuBarController: NSObject {
     // MARK: Status items
 
     private func rebuildItems() {
-        if popover.isShown { popover.performClose(nil) }
+        closePopover()
         for entry in order { NSStatusBar.system.removeStatusItem(entry.item) }
         order.removeAll()
 
@@ -157,19 +159,47 @@ final class MenuBarController: NSObject {
     }
 
     private func togglePopover(for kind: ModuleKind, item: NSStatusItem) {
-        if popover.isShown && activeKind == kind {
-            popover.performClose(nil)
-            return
+        // Any visible popover is dismissed first. If it was this same module, that
+        // click just closes it (toggle off).
+        if let current = popover, current.isShown {
+            let wasActive = activeKind == kind
+            closePopover()
+            if wasActive { return }
+        } else {
+            closePopover()
         }
-        if popover.isShown { popover.performClose(nil) }
 
-        let root = ModulePopover(kind: kind, engine: engine, settings: settings,
-                                 onOpenSettings: { [weak self] in self?.openSettings() })
-        popover.contentViewController = NSHostingController(rootView: root)
+        guard let button = item.button else { return }
+
+        // Fresh NSPopover every time so the window is created at the correct size
+        // and dropped straight below the status item — no leftover frame to drift.
+        let pop = NSPopover()
+        pop.behavior = .transient
+        pop.animates = false
+        pop.contentViewController = NSHostingController(
+            rootView: ModulePopover(kind: kind, engine: engine, settings: settings,
+                                    onOpenSettings: { [weak self] in self?.openSettings() }))
+        pop.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
+        popover = pop
         activeKind = kind
-        if let button = item.button {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+
+        // NSPopover here anchors the window by a fixed bottom instead of dropping
+        // it below the menu bar, so popovers of different heights land at random
+        // vertical offsets. Pin the top edge to the status item's bottom; keep the
+        // x NSPopover chose so the arrow still points at the icon.
+        if let win = pop.contentViewController?.view.window,
+           let btnWin = button.window {
+            let btnScreen = btnWin.convertToScreen(button.convert(button.bounds, to: nil))
+            var f = win.frame
+            f.origin.y = btnScreen.minY - f.height
+            win.setFrame(f, display: true)
         }
+    }
+
+    private func closePopover() {
+        popover?.close()
+        popover = nil
+        activeKind = nil
     }
 
     private func showMenu(at button: NSStatusBarButton) {
@@ -191,7 +221,7 @@ final class MenuBarController: NSObject {
     @objc private func toggleLogin() { settings.launchAtLogin.toggle() }
 
     private func openSettings() {
-        if popover.isShown { popover.performClose(nil) }
+        closePopover()
         if settingsWindow == nil {
             settingsWindow = SettingsWindowController(settings: settings)
         }
