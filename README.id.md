@@ -36,9 +36,21 @@ Alternatif **Activity Monitor**, **[Stats](https://github.com/exelban/stats)** d
         ╰────────────────────────────╯
 ```
 
+<div align="center">
+
+<img src="docs/screenshots/menubar.png" alt="Better Mac Stats langsung di menu bar macOS" width="440"><br>
+<sub><em>Semua metrik, langsung di menu bar.</em></sub>
+
+<br><br>
+
+<img src="docs/screenshots/popovers.gif" alt="Popover langsung berganti antara CPU, memori, jaringan, GPU, disk, sensor, baterai, dan jam" width="300">
+
+</div>
+
 ## Daftar isi
 
 - [Fitur](#fitur)
+- [Tangkapan layar](#tangkapan-layar)
 - [Kenapa Better Mac Stats?](#kenapa-better-mac-stats)
 - [Persyaratan](#persyaratan)
 - [Instal & build](#instal--build)
@@ -50,6 +62,28 @@ Alternatif **Activity Monitor**, **[Stats](https://github.com/exelban/stats)** d
 - [FAQ](#faq)
 - [Kontribusi](#kontribusi)
 - [Lisensi](#lisensi)
+
+## Tangkapan layar
+
+> Klik kiri item menu bar mana pun untuk membuka popover langsungnya. Tangkapan asli di Apple M3.
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/cpu.png" width="240"><br><b>CPU</b><br><sub>beban per‑core + histori</sub></td>
+<td align="center"><img src="docs/screenshots/gpu.png" width="240"><br><b>GPU</b><br><sub>utilisasi + VRAM</sub></td>
+<td align="center"><img src="docs/screenshots/memory.png" width="240"><br><b>Memori</b><br><sub>rincian tekanan</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/disk.png" width="240"><br><b>Disk</b><br><sub>I/O + volume</sub></td>
+<td align="center"><img src="docs/screenshots/network.png" width="240"><br><b>Jaringan</b><br><sub>throughput + IP</sub></td>
+<td align="center"><img src="docs/screenshots/sensors.png" width="240"><br><b>Sensor</b><br><sub>suhu</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/battery.png" width="240"><br><b>Baterai</b><br><sub>kesehatan + siklus</sub></td>
+<td align="center"><img src="docs/screenshots/clock.png" width="240"><br><b>Jam</b><br><sub>multi‑zona waktu</sub></td>
+<td></td>
+</tr>
+</table>
 
 ## Fitur
 

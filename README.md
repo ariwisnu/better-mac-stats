@@ -36,9 +36,21 @@ A free and open‑source **Activity Monitor**, **[Stats](https://github.com/exel
         ╰────────────────────────────╯
 ```
 
+<div align="center">
+
+<img src="docs/screenshots/menubar.png" alt="Better Mac Stats live in the macOS menu bar" width="440"><br>
+<sub><em>Every metric, live in your menu bar.</em></sub>
+
+<br><br>
+
+<img src="docs/screenshots/popovers.gif" alt="Live popovers cycling through CPU, memory, network, GPU, disk, sensors, battery and clock" width="300">
+
+</div>
+
 ## Table of contents
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Why Better Mac Stats?](#why-better-mac-stats)
 - [Requirements](#requirements)
 - [Install & build](#install--build)
@@ -50,6 +62,28 @@ A free and open‑source **Activity Monitor**, **[Stats](https://github.com/exel
 - [FAQ](#faq)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Screenshots
+
+> Left‑click any menu bar item to open its live popover. Real captures on Apple M3.
+
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/cpu.png" width="240"><br><b>CPU</b><br><sub>per‑core load + history</sub></td>
+<td align="center"><img src="docs/screenshots/gpu.png" width="240"><br><b>GPU</b><br><sub>utilization + VRAM</sub></td>
+<td align="center"><img src="docs/screenshots/memory.png" width="240"><br><b>Memory</b><br><sub>pressure breakdown</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/disk.png" width="240"><br><b>Disk</b><br><sub>I/O + volumes</sub></td>
+<td align="center"><img src="docs/screenshots/network.png" width="240"><br><b>Network</b><br><sub>throughput + IP</sub></td>
+<td align="center"><img src="docs/screenshots/sensors.png" width="240"><br><b>Sensors</b><br><sub>temperatures</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/battery.png" width="240"><br><b>Battery</b><br><sub>health + cycle count</sub></td>
+<td align="center"><img src="docs/screenshots/clock.png" width="240"><br><b>Clock</b><br><sub>multi‑timezone</sub></td>
+<td></td>
+</tr>
+</table>
 
 ## Features
 
