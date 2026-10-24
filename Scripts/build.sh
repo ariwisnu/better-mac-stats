@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="0.1.0"
+VERSION="0.1.1"
 BUNDLE_ID="com.bettermacstats.app"
 DEPLOY="12.0"
 DEPLOY_X86="13.0"
