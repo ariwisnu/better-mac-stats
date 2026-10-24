@@ -15,8 +15,7 @@ public final class NetworkReader {
     public init() {}
 
     public func read(at now: Date = Date()) -> NetworkUsage {
-        var totalIn: UInt64 = 0
-        var totalOut: UInt64 = 0
+        let (totalIn, totalOut) = Self.interfaceTotals()
         var primaryName: String?
         var localIP: String?
 
@@ -35,11 +34,7 @@ public final class NetworkReader {
             guard isUp, !isLoopback, let addr = ifa.ifa_addr else { continue }
             let family = addr.pointee.sa_family
 
-            if family == UInt8(AF_LINK), let raw = ifa.ifa_data {
-                let stats = raw.assumingMemoryBound(to: if_data.self).pointee
-                totalIn &+= UInt64(stats.ifi_ibytes)
-                totalOut &+= UInt64(stats.ifi_obytes)
-            } else if family == UInt8(AF_INET), name.hasPrefix("en"), localIP == nil {
+            if family == UInt8(AF_INET), name.hasPrefix("en"), localIP == nil {
                 var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
                 if getnameinfo(addr, socklen_t(addr.pointee.sa_len), &host, socklen_t(host.count),
                                nil, 0, NI_NUMERICHOST) == 0 {
@@ -67,6 +62,48 @@ public final class NetworkReader {
         return NetworkUsage(uploadBytesPerSec: up, downloadBytesPerSec: down,
                             totalUploaded: totalOut, totalDownloaded: totalIn,
                             interfaceName: primaryName, localIP: localIP, connectionType: connType)
+    }
+
+    /// Tunnels (VPN) and bridges carry traffic that is also counted on the physical
+    /// interface underneath, so summing them would double the rate.
+    static let virtualPrefixes = ["utun", "ipsec", "ppp", "gif", "stf", "bridge"]
+
+    static func isCounted(interface name: String) -> Bool {
+        !virtualPrefixes.contains { name.hasPrefix($0) }
+    }
+
+    /// Summed byte counters of every up, non-loopback, physical interface. Read
+    /// from `NET_RT_IFLIST2` because `getifaddrs` only exposes 32-bit counters,
+    /// which wrap every 4 GB.
+    private static func interfaceTotals() -> (UInt64, UInt64) {
+        var mib: [Int32] = [CTL_NET, PF_ROUTE, 0, 0, NET_RT_IFLIST2, 0]
+        var len = 0
+        guard sysctl(&mib, 6, nil, &len, nil, 0) == 0, len > 0 else { return (0, 0) }
+        var buf = [UInt8](repeating: 0, count: len)
+        guard sysctl(&mib, 6, &buf, &len, nil, 0) == 0 else { return (0, 0) }
+
+        var totalIn: UInt64 = 0
+        var totalOut: UInt64 = 0
+        buf.withUnsafeBytes { raw in
+            var off = 0
+            while off + MemoryLayout<if_msghdr>.size <= len {
+                let msg = raw.loadUnaligned(fromByteOffset: off, as: if_msghdr.self)
+                guard msg.ifm_msglen > 0 else { break }
+                if Int32(msg.ifm_type) == RTM_IFINFO2,
+                   off + MemoryLayout<if_msghdr2>.size <= len {
+                    let info = raw.loadUnaligned(fromByteOffset: off, as: if_msghdr2.self)
+                    var name = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
+                    if info.ifm_flags & IFF_UP != 0, info.ifm_flags & IFF_LOOPBACK == 0,
+                       if_indextoname(UInt32(info.ifm_index), &name) != nil,
+                       isCounted(interface: String(cString: name)) {
+                        totalIn &+= info.ifm_data.ifi_ibytes
+                        totalOut &+= info.ifm_data.ifi_obytes
+                    }
+                }
+                off += Int(msg.ifm_msglen)
+            }
+        }
+        return (totalIn, totalOut)
     }
 
     private static func wifiInterfaceName() -> String? {

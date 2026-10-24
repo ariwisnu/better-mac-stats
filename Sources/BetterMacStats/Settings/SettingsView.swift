@@ -131,11 +131,11 @@ private struct ClockTab: View {
                 } label: { Image(systemName: "plus") }
             }
             List {
-                ForEach($settings.clockZones) { $zone in
+                ForEach(settings.clockZones) { zone in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            TextField("Label", text: $zone.label).frame(width: 90)
-                            Picker("", selection: $zone.timeZoneID) {
+                            TextField("Label", text: binding(zone.id, \.label, "")).frame(width: 90)
+                            Picker("", selection: binding(zone.id, \.timeZoneID, zone.timeZoneID)) {
                                 ForEach(zoneIDs, id: \.self) { Text($0).tag($0) }
                             }
                             .labelsHidden()
@@ -145,8 +145,8 @@ private struct ClockTab: View {
                             .buttonStyle(.borderless)
                         }
                         HStack(spacing: 16) {
-                            Toggle("24-hour", isOn: $zone.use24Hour)
-                            Toggle("Seconds", isOn: $zone.showSeconds)
+                            Toggle("24-hour", isOn: binding(zone.id, \.use24Hour, true))
+                            Toggle("Seconds", isOn: binding(zone.id, \.showSeconds, false))
                         }
                         .font(.caption)
                     }
@@ -155,6 +155,18 @@ private struct ClockTab: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    /// Looks the zone up by id on every access. `ForEach($array)` bindings capture
+    /// an index, so deleting a row while one of its fields is live can crash.
+    private func binding<Value>(_ id: UUID, _ keyPath: WritableKeyPath<ClockZone, Value>,
+                                _ fallback: Value) -> Binding<Value> {
+        Binding(
+            get: { settings.clockZones.first { $0.id == id }?[keyPath: keyPath] ?? fallback },
+            set: { value in
+                guard let i = settings.clockZones.firstIndex(where: { $0.id == id }) else { return }
+                settings.clockZones[i][keyPath: keyPath] = value
+            })
     }
 }
 

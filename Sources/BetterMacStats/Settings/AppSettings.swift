@@ -20,6 +20,10 @@ final class AppSettings: ObservableObject {
         didSet {
             guard loaded else { return }
             LoginItem.setEnabled(launchAtLogin)
+            // If registration failed, show the real state instead of a stale toggle.
+            // @Published re-runs didSet once for this assignment; the states then match.
+            let actual = LoginItem.isEnabled()
+            if actual != launchAtLogin { launchAtLogin = actual }
             persist()
         }
     }

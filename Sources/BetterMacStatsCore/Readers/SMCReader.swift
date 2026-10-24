@@ -31,6 +31,10 @@ public final class SMCReader {
     private var connection: io_connect_t = 0
     private var opened = false
     private var unsupported = false
+    /// Key metadata never changes, so it is looked up once per key; keys this Mac
+    /// does not have are remembered and never probed again.
+    private var keyInfo: [String: (size: Int, type: String)] = [:]
+    private var missingKeys = Set<String>()
 
     public init() {}
     deinit { close() }
@@ -109,14 +113,9 @@ public final class SMCReader {
     // MARK: SMC primitives
 
     private func value(forKey key: String) -> Double? {
-        var keyInfoReq = [UInt8](repeating: 0, count: Self.bufferSize)
-        Self.putU32(&keyInfoReq, Self.offKey, Self.fourCC(key))
-        keyInfoReq[Self.offData8] = Self.cmdReadKeyInfo
-        guard let info = call(keyInfoReq), info[Self.offResult] == 0 else { return nil }
-
-        let size = Int(Self.getU32(info, Self.offDataSize))
-        let type = Self.typeString(Self.getU32(info, Self.offDataType))
-        guard size > 0, size <= 32 else { return nil }
+        guard !missingKeys.contains(key),
+              let (size, type) = keyInfo[key] ?? readKeyInfo(key) else { return nil }
+        keyInfo[key] = (size, type)
 
         var readReq = [UInt8](repeating: 0, count: Self.bufferSize)
         Self.putU32(&readReq, Self.offKey, Self.fourCC(key))
@@ -126,6 +125,21 @@ public final class SMCReader {
 
         let bytes = Array(out[Self.offBytes ..< Self.offBytes + size])
         return Self.decode(bytes: bytes, type: type, size: size)
+    }
+
+    private func readKeyInfo(_ key: String) -> (size: Int, type: String)? {
+        var req = [UInt8](repeating: 0, count: Self.bufferSize)
+        Self.putU32(&req, Self.offKey, Self.fourCC(key))
+        req[Self.offData8] = Self.cmdReadKeyInfo
+        // A failed IOKit call may be transient; only a definite answer marks the key missing.
+        guard let info = call(req) else { return nil }
+
+        let size = Int(Self.getU32(info, Self.offDataSize))
+        guard info[Self.offResult] == 0, size > 0, size <= 32 else {
+            missingKeys.insert(key)
+            return nil
+        }
+        return (size, Self.typeString(Self.getU32(info, Self.offDataType)))
     }
 
     private func call(_ input: [UInt8]) -> [UInt8]? {

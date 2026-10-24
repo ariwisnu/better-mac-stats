@@ -8,7 +8,9 @@ enum LoginItem {
 
     static func isEnabled() -> Bool {
         if #available(macOS 13.0, *) {
-            return SMAppService.mainApp.status == .enabled
+            // Registered but awaiting the user's OK in System Settings still counts as on.
+            let status = SMAppService.mainApp.status
+            return status == .enabled || status == .requiresApproval
         }
         return FileManager.default.fileExists(atPath: legacyPlistURL().path)
     }
@@ -19,8 +21,9 @@ enum LoginItem {
                 let service = SMAppService.mainApp
                 if enabled {
                     if service.status != .enabled { try service.register() }
+                    if service.status == .requiresApproval { SMAppService.openSystemSettingsLoginItems() }
                 } else {
-                    if service.status == .enabled { try service.unregister() }
+                    if service.status != .notRegistered { try service.unregister() }
                 }
             } catch {
                 NSLog("[BetterMacStats] login item error: \(error.localizedDescription)")

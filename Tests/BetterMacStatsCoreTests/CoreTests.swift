@@ -94,3 +94,11 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(root.used, 60)
     }
 }
+
+final class NetworkReaderTests: XCTestCase {
+    func testSkipsVirtualInterfaces() {
+        XCTAssertTrue(NetworkReader.isCounted(interface: "en0"))
+        XCTAssertFalse(NetworkReader.isCounted(interface: "utun4"))
+        XCTAssertFalse(NetworkReader.isCounted(interface: "bridge100"))
+    }
+}

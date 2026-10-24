@@ -16,7 +16,11 @@ final class MenuBarController: NSObject {
     /// rode up over the icon, shorter ones dropped far below the menu bar).
     private var popover: NSPopover?
     private var activeKind: ModuleKind?
+    /// `.transient` only closes the popover while this app is active, and a menu
+    /// bar agent usually is not, so clicks in other apps are caught here instead.
+    private var outsideClickMonitor: Any?
     private var timer: Timer?
+    private var clockTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var settingsWindow: SettingsWindowController?
 
@@ -120,6 +124,22 @@ final class MenuBarController: NSObject {
         let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.tick() }
         RunLoop.main.add(t, forMode: .common)
         timer = t
+
+        if clockTimer == nil {
+            // Fire just after each whole second so the displayed second is current.
+            let next = Date(timeIntervalSinceReferenceDate: Date().timeIntervalSinceReferenceDate.rounded(.down) + 1.02)
+            let c = Timer(fire: next, interval: 1, repeats: true) { [weak self] _ in self?.tickClock() }
+            RunLoop.main.add(c, forMode: .common)
+            clockTimer = c
+        }
+    }
+
+    private func tickClock() {
+        engine.tickClock()
+        for entry in order where entry.kind == .clock {
+            apply(MenuBarRenderer.content(for: .clock, engine: engine, settings: settings),
+                  to: entry.item, kind: .clock)
+        }
     }
 
     private func tick() {
@@ -182,6 +202,12 @@ final class MenuBarController: NSObject {
         pop.show(relativeTo: button.bounds, of: button, preferredEdge: .maxY)
         popover = pop
         activeKind = kind
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
+            // Clicks on our own status items arrive here too; handleClick owns those.
+            guard let self, !self.isOverStatusItem(NSEvent.mouseLocation) else { return }
+            self.closePopover()
+        }
 
         // NSPopover here anchors the window by a fixed bottom instead of dropping
         // it below the menu bar, so popovers of different heights land at random
@@ -196,13 +222,25 @@ final class MenuBarController: NSObject {
         }
     }
 
+    private func isOverStatusItem(_ point: NSPoint) -> Bool {
+        order.contains { entry in
+            guard let button = entry.item.button, let win = button.window else { return false }
+            return win.convertToScreen(button.convert(button.bounds, to: nil)).contains(point)
+        }
+    }
+
     private func closePopover() {
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
+        }
         popover?.close()
         popover = nil
         activeKind = nil
     }
 
     private func showMenu(at button: NSStatusBarButton) {
+        closePopover()
         let menu = NSMenu()
         let header = menu.addItem(withTitle: "Better Mac Stats", action: nil, keyEquivalent: "")
         header.isEnabled = false

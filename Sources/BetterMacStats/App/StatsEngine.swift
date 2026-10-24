@@ -82,7 +82,13 @@ final class StatsEngine: ObservableObject {
         }
         if on.contains(.sensors) { sensors = smcReader.read() }
         if on.contains(.bluetooth) { bluetooth = btReader.read() }
-        if on.contains(.clock) { clocks = clockReader.read(zones: settings.clockZones) }
+        tickClock()
+    }
+
+    /// Clocks refresh on their own 1 s timer so seconds never skip, whatever the
+    /// update interval is.
+    func tickClock() {
+        if settings.enabledModules.contains(.clock) { clocks = clockReader.read(zones: settings.clockZones) }
     }
 
     // MARK: Derived

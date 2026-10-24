@@ -78,6 +78,12 @@ let disk = DiskUsage(volumes: [ext, root], readBytesPerSec: 0, writeBytesPerSec:
 eq(disk.primary?.path ?? "?", "/", "disk primary is root")
 eq(root.used, 60, "disk used")
 
+// MARK: NetworkReader
+
+ok(NetworkReader.isCounted(interface: "en0"), "net counts Wi-Fi/Ethernet")
+ok(!NetworkReader.isCounted(interface: "utun4"), "net skips VPN tunnel")
+ok(!NetworkReader.isCounted(interface: "bridge100"), "net skips bridge")
+
 // MARK: Result
 
 print("")
