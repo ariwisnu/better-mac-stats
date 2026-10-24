@@ -11,6 +11,7 @@ cd "$ROOT"
 VERSION="0.1.0"
 BUNDLE_ID="com.bettermacstats.app"
 DEPLOY="12.0"
+DEPLOY_X86="13.0"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -45,7 +46,9 @@ build_slice() { # $1 = arch triple, $2 = output dir
 echo "▸ Building core + app…"
 if [[ "${UNIVERSAL:-0}" == "1" ]]; then
     build_slice "arm64-apple-macosx${DEPLOY}" "$TMP/arm64"
-    build_slice "x86_64-apple-macosx${DEPLOY}" "$TMP/x86_64"
+    # The Command Line Tools ship libswiftCompatibility56 for arm64 only, so the
+    # Intel slice must target macOS 13 to link without it.
+    build_slice "x86_64-apple-macosx${DEPLOY_X86}" "$TMP/x86_64"
     lipo -create "$TMP/arm64/BetterMacStats" "$TMP/x86_64/BetterMacStats" -output "$MACOS/BetterMacStats"
 else
     ARCH="$(uname -m)"
@@ -67,6 +70,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>LSMinimumSystemVersion</key><string>${DEPLOY}</string>
+    <key>LSMinimumSystemVersionByArchitecture</key>
+    <dict><key>x86_64</key><string>${DEPLOY_X86}</string></dict>
     <key>LSUIElement</key><true/>
     <key>NSHumanReadableCopyright</key><string>Better Mac Stats</string>
     <key>NSBluetoothAlwaysUsageDescription</key><string>Show the battery and status of your paired Bluetooth devices.</string>

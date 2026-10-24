@@ -14,6 +14,10 @@ A free and open‑source **Activity Monitor**, **[Stats](https://github.com/exel
 
 **English** · [Bahasa Indonesia](README.id.md)
 
+### [⬇︎ Download for macOS](https://github.com/ariwisnu/better-mac-stats/releases/latest/download/BetterMacStats.zip)
+
+<sub>Universal (Apple Silicon + Intel) · ~0.5 MB · [all releases](https://github.com/ariwisnu/better-mac-stats/releases)</sub>
+
 </div>
 
 > Keep an eye on your Mac without ever opening Activity Monitor. Every metric is a
@@ -125,13 +129,29 @@ extend in minutes.
 
 ## Requirements
 
-- **macOS 12 Monterey or later** (built and verified on macOS 26, Apple M3).
-- A Swift toolchain — either full **Xcode** or the **Command Line Tools**
-  (`xcode-select --install`).
+- **macOS 12 Monterey or later** on Apple Silicon, **macOS 13 Ventura or later** on
+  Intel (built and verified on macOS 26, Apple M3).
+- To build from source: a Swift toolchain — either full **Xcode** or the
+  **Command Line Tools** (`xcode-select --install`).
 - Universal: runs on **Apple Silicon** and **Intel**.
 - Zero third‑party dependencies.
 
 ## Install & build
+
+### Download
+
+1. Download **[BetterMacStats.zip](https://github.com/ariwisnu/better-mac-stats/releases/latest/download/BetterMacStats.zip)**
+   from the [latest release](https://github.com/ariwisnu/better-mac-stats/releases/latest).
+2. Unzip it and drag **BetterMacStats.app** into **Applications**.
+3. Open it. The app is not notarized yet, so macOS blocks the first launch. Either:
+   - open **System Settings → Privacy & Security**, scroll down and click
+     **Open Anyway**, or
+   - run once in Terminal:
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/BetterMacStats.app
+     ```
+
+### Build from source
 
 ```bash
 git clone https://github.com/ariwisnu/better-mac-stats.git

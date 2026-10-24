@@ -14,6 +14,10 @@ Alternatif **Activity Monitor**, **[Stats](https://github.com/exelban/stats)** d
 
 [English](README.md) · **Bahasa Indonesia**
 
+### [⬇︎ Download untuk macOS](https://github.com/ariwisnu/better-mac-stats/releases/latest/download/BetterMacStats.zip)
+
+<sub>Universal (Apple Silicon + Intel) · ~0,5 MB · [semua rilis](https://github.com/ariwisnu/better-mac-stats/releases)</sub>
+
 </div>
 
 > Pantau Mac tanpa pernah membuka Activity Monitor. Tiap metrik jadi item menu bar
@@ -125,13 +129,29 @@ dependensi sehingga bisa di‑build dan dikembangkan dalam hitungan menit.
 
 ## Persyaratan
 
-- **macOS 12 Monterey atau lebih baru** (di‑build & diuji di macOS 26, Apple M3).
-- Toolchain Swift — **Xcode** penuh atau **Command Line Tools**
-  (`xcode-select --install`).
+- **macOS 12 Monterey atau lebih baru** di Apple Silicon, **macOS 13 Ventura atau
+  lebih baru** di Intel (di‑build & diuji di macOS 26, Apple M3).
+- Untuk build dari source: toolchain Swift — **Xcode** penuh atau
+  **Command Line Tools** (`xcode-select --install`).
 - Universal: jalan di **Apple Silicon** dan **Intel**.
 - Tanpa dependensi pihak ketiga.
 
 ## Instal & build
+
+### Download
+
+1. Download **[BetterMacStats.zip](https://github.com/ariwisnu/better-mac-stats/releases/latest/download/BetterMacStats.zip)**
+   dari [rilis terbaru](https://github.com/ariwisnu/better-mac-stats/releases/latest).
+2. Ekstrak lalu seret **BetterMacStats.app** ke **Applications**.
+3. Buka. App belum di‑notarize, jadi macOS memblokir saat pertama dibuka. Pilih salah satu:
+   - buka **System Settings → Privacy & Security**, gulir ke bawah, klik
+     **Open Anyway**, atau
+   - jalankan sekali di Terminal:
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/BetterMacStats.app
+     ```
+
+### Build dari source
 
 ```bash
 git clone https://github.com/ariwisnu/better-mac-stats.git
