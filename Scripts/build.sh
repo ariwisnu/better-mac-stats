@@ -66,6 +66,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>Better Mac Stats</string>
     <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
     <key>CFBundleExecutable</key><string>BetterMacStats</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
@@ -80,6 +81,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 echo "PkgInfo" > /dev/null; printf 'APPL????' > "$APP/Contents/PkgInfo"
+cp Resources/AppIcon.icns "$RES/AppIcon.icns"   # regenerate with Scripts/make-icon.sh
 
 echo "▸ Ad-hoc codesigning…"
 codesign --force --deep --sign - "$APP" 2>/dev/null || echo "  (codesign skipped)"

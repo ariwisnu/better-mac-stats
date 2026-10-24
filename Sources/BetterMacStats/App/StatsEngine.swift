@@ -80,7 +80,8 @@ final class StatsEngine: ObservableObject {
             gpus = gpuReader.read()
             gpuBuf.push(gpus.first?.utilization ?? 0); gpuHistory = gpuBuf.values
         }
-        if on.contains(.sensors) { sensors = smcReader.read() }
+        // The CPU popover shows the CPU temperature, so it needs the sensors too.
+        if on.contains(.sensors) || on.contains(.cpu) { sensors = smcReader.read() }
         if on.contains(.bluetooth) { bluetooth = btReader.read() }
         tickClock()
     }

@@ -1,15 +1,28 @@
 import Foundation
 import Darwin
+import IOKit
 
 public struct CPUStaticInfo: Equatable {
     public var brand: String
     public var physicalCores: Int
     public var logicalCores: Int
+    /// "P" or "E" per logical CPU, in host_processor_info order. Empty on Intel.
+    public var coreTypes: [String]
 
-    public init(brand: String, physicalCores: Int, logicalCores: Int) {
+    public init(brand: String, physicalCores: Int, logicalCores: Int, coreTypes: [String] = []) {
         self.brand = brand
         self.physicalCores = physicalCores
         self.logicalCores = logicalCores
+        self.coreTypes = coreTypes
+    }
+
+    /// "4P + 4E" on Apple Silicon, "8 cores · 16 threads" on Intel.
+    public var coresDescription: String {
+        let p = coreTypes.filter { $0 == "P" }.count
+        let e = coreTypes.filter { $0 == "E" }.count
+        if p + e > 0 { return e > 0 ? "\(p)P + \(e)E" : "\(p)P" }
+        return physicalCores == logicalCores
+            ? "\(physicalCores) cores" : "\(physicalCores) cores · \(logicalCores) threads"
     }
 }
 
@@ -26,7 +39,35 @@ public final class CPUReader {
             ?? "Unknown CPU"
         let physical = Int(Sysctl.int32("hw.physicalcpu") ?? Int32(ProcessInfo.processInfo.processorCount))
         let logical = Int(Sysctl.int32("hw.logicalcpu") ?? Int32(ProcessInfo.processInfo.processorCount))
-        return CPUStaticInfo(brand: brand, physicalCores: physical, logicalCores: logical)
+        return CPUStaticInfo(brand: brand, physicalCores: physical, logicalCores: logical,
+                             coreTypes: Self.coreTypes(count: logical))
+    }
+
+    /// Cluster type of each logical CPU from the device tree (`cpus/cpuN`).
+    /// Returns [] when any core lacks the information, e.g. on Intel.
+    private static func coreTypes(count: Int) -> [String] {
+        let cpus = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/cpus")
+        guard cpus != 0 else { return [] }
+        defer { IOObjectRelease(cpus) }
+        var iterator: io_iterator_t = 0
+        guard IORegistryEntryGetChildIterator(cpus, kIODeviceTreePlane, &iterator) == KERN_SUCCESS else { return [] }
+        defer { IOObjectRelease(iterator) }
+
+        var types = [String](repeating: "", count: count)
+        var entry = IOIteratorNext(iterator)
+        while entry != 0 {
+            let id = IORegistryEntryCreateCFProperty(entry, "logical-cpu-id" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? Int
+            let raw = IORegistryEntryCreateCFProperty(entry, "cluster-type" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? Data
+            if let id, id < count, let raw, let type = String(data: raw, encoding: .ascii)?
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\0")) {
+                types[id] = type
+            }
+            IOObjectRelease(entry)
+            entry = IOIteratorNext(iterator)
+        }
+        return types.allSatisfy { $0 == "P" || $0 == "E" } ? types : []
     }
 
     public func read() -> CPULoad {

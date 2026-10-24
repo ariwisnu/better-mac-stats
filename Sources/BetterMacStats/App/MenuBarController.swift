@@ -60,7 +60,6 @@ final class MenuBarController: NSObject {
                 button.target = self
                 button.action = #selector(handleClick(_:))
                 button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-                button.setAccessibilityLabel(kind.title)
             }
             order.append((kind, item))
         }
@@ -114,6 +113,13 @@ final class MenuBarController: NSObject {
             let prefix = button.image != nil ? " " : ""
             button.attributedTitle = NSAttributedString(string: prefix + content.title, attributes: attrs)
         }
+        button.setAccessibilityLabel(content.title.isEmpty && content.spoken == nil
+            ? kind.title : "\(kind.title), \(content.spoken ?? content.title)")
+
+        // Grow-only width, so a value gaining a digit does not shove the
+        // neighbouring menu bar items around every tick.
+        let width = ceil(button.cell?.cellSize.width ?? button.fittingSize.width)
+        if width > item.length { item.length = width }
     }
 
     // MARK: Timer
@@ -158,6 +164,8 @@ final class MenuBarController: NSObject {
             lastInterval = settings.refreshInterval
             startTimer()
         }
+        // Appearance settings can make items narrower; let them shrink once.
+        for entry in order { entry.item.length = NSStatusItem.variableLength }
         refreshAll()
     }
 
@@ -168,14 +176,14 @@ final class MenuBarController: NSObject {
         let event = NSApp.currentEvent
         let isRight = event?.type == .rightMouseUp || (event?.modifierFlags.contains(.control) ?? false)
         if isRight {
-            showMenu(at: sender)
+            showMenu(for: entry.item)
         } else {
             togglePopover(for: entry.kind, item: entry.item)
         }
     }
 
     @objc private func handleControlClick(_ sender: NSStatusBarButton) {
-        showMenu(at: sender)
+        if let item = controlItem { showMenu(for: item) }
     }
 
     private func togglePopover(for kind: ModuleKind, item: NSStatusItem) {
@@ -239,7 +247,7 @@ final class MenuBarController: NSObject {
         activeKind = nil
     }
 
-    private func showMenu(at button: NSStatusBarButton) {
+    private func showMenu(for item: NSStatusItem) {
         closePopover()
         let menu = NSMenu()
         let header = menu.addItem(withTitle: "Better Mac Stats", action: nil, keyEquivalent: "")
@@ -251,7 +259,11 @@ final class MenuBarController: NSObject {
         login.state = settings.launchAtLogin ? .on : .off
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Better Mac Stats", action: #selector(quitAction), keyEquivalent: "q").target = self
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+        // Attach and click so AppKit drops the menu right under the item, like a
+        // system menu extra. popUp(at:in:) anchored it above the button, off screen.
+        item.menu = menu
+        item.button?.performClick(nil)
+        item.menu = nil
     }
 
     @objc private func openSettingsAction() { openSettings() }

@@ -43,31 +43,44 @@ public final class BatteryReader {
         return .absent
     }
 
-    /// Pull extra detail from AppleSmartBattery. Missing on desktops — returns input unchanged.
+    /// Pull extra detail from the battery registry. Missing on desktops — returns input unchanged.
     private func enrich(_ base: BatteryInfo) -> BatteryInfo {
-        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
-        guard service != 0 else { return base }
-        defer { IOObjectRelease(service) }
-
-        var props: Unmanaged<CFMutableDictionary>?
-        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
-              let dict = props?.takeRetainedValue() as? [String: Any] else { return base }
+        // Newer macOS spreads the values over AppleSmartBattery, its child
+        // AppleSmartBatteryPack, and each one's nested "BatteryData" dictionary.
+        let dicts = ["AppleSmartBattery", "AppleSmartBatteryPack"].flatMap { name -> [[String: Any]] in
+            guard let props = Self.properties(of: name) else { return [] }
+            return [props, props["BatteryData"] as? [String: Any] ?? [:]]
+        }
+        guard !dicts.isEmpty else { return base }
+        func number(_ key: String) -> Int? {
+            dicts.lazy.compactMap { ($0[key] as? NSNumber)?.intValue }.first
+        }
 
         var info = base
-        info.cycleCount = (dict["CycleCount"] as? NSNumber)?.intValue
-        let design = (dict["DesignCapacity"] as? NSNumber)?.intValue
-        let maxCap = (dict["AppleRawMaxCapacity"] as? NSNumber)?.intValue
-            ?? (dict["MaxCapacity"] as? NSNumber)?.intValue
+        info.cycleCount = number("CycleCount")
+        let design = number("DesignCapacity")
+        // "MaxCapacity" is a percentage on Apple Silicon, mAh only on older Macs.
+        let maxCap = number("AppleRawMaxCapacity") ?? number("FullChargeCapacity")
+            ?? number("MaxCapacity").flatMap { $0 > 100 ? $0 : nil }
         info.designCapacity = design
         info.maxCapacity = maxCap
         if let d = design, d > 0, let m = maxCap {
             info.healthPercent = Int((Double(m) / Double(d) * 100).rounded())
         }
-        if let centiC = (dict["Temperature"] as? NSNumber)?.doubleValue {
-            info.temperature = centiC / 100.0
+        if let centiC = number("Temperature") {
+            info.temperature = Double(centiC) / 100.0
         }
-        info.conditionString = (dict["BatteryHealthCondition"] as? String)
+        info.conditionString = dicts.lazy.compactMap { $0["BatteryHealthCondition"] as? String }.first
             ?? (info.healthPercent != nil ? "Normal" : nil)
         return info
+    }
+
+    private static func properties(of className: String) -> [String: Any]? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching(className))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        var props: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS else { return nil }
+        return props?.takeRetainedValue() as? [String: Any]
     }
 }

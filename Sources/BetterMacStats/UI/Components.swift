@@ -1,11 +1,50 @@
+import AppKit
 import SwiftUI
+import BetterMacStatsCore
 
-/// Color ramp from green (idle) to red (saturated), used for load coloring.
-enum Palette {
-    static func load(_ fraction: Double) -> Color {
-        let x = min(1, max(0, fraction.isFinite ? fraction : 0))
-        let hue = (1 - x) * 0.33 // 0.33 green → 0 red
-        return Color(hue: hue, saturation: 0.85, brightness: 0.9)
+/// Values are drawn in the normal text color; color only flags a problem, using
+/// system colors so it stays readable on light and dark menu bars.
+enum Severity {
+    case normal, warning, critical
+
+    init(_ value: Double, warning: Double, critical: Double) {
+        self = value >= critical ? .critical : value >= warning ? .warning : .normal
+    }
+
+    init(_ pressure: MemoryPressure) {
+        switch pressure {
+        case .normal: self = .normal
+        case .warning: self = .warning
+        case .critical: self = .critical
+        }
+    }
+
+    static func load(_ fraction: Double) -> Severity { Severity(fraction, warning: 0.7, critical: 0.9) }
+    static func disk(_ fraction: Double) -> Severity { Severity(fraction, warning: 0.85, critical: 0.95) }
+    static func temperature(_ celsius: Double) -> Severity { Severity(celsius, warning: 80, critical: 95) }
+    /// 20% or less is a warning, 10% or less critical.
+    static func battery(_ percent: Int) -> Severity { Severity(Double(100 - percent), warning: 80, critical: 90) }
+    /// Below 80% capacity is when Apple recommends service.
+    static func health(_ percent: Int) -> Severity { Severity(Double(100 - percent), warning: 21, critical: 41) }
+
+    /// Text color; nil keeps the adaptive system label color.
+    var text: Color? {
+        switch self {
+        case .normal: return nil
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+
+    /// Bars, rings and charts.
+    var fill: Color { text ?? .accentColor }
+
+    var menuBar: NSColor? {
+        switch self {
+        case .normal: return nil
+        case .warning: return .systemOrange
+        case .critical: return .systemRed
+        }
     }
 }
 
@@ -16,6 +55,8 @@ struct Sparkline: View {
     var fillOpacity: Double = 0.15
     /// Fixed scale ceiling; when nil the chart auto-scales to its own max.
     var maxValue: Double?
+    /// Lowest auto-scale ceiling, so idle noise is not drawn as a full-height spike.
+    var minCeiling: Double = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -29,7 +70,7 @@ struct Sparkline: View {
     }
 
     private func points(in size: CGSize) -> [CGPoint] {
-        let ceiling = max(maxValue ?? (values.max() ?? 1), 0.0001)
+        let ceiling = max(maxValue ?? max(values.max() ?? 1, minCeiling), 0.0001)
         let denom = CGFloat(max(values.count - 1, 1))
         return values.enumerated().map { i, v in
             CGPoint(x: size.width * CGFloat(i) / denom,
@@ -163,12 +204,6 @@ struct PopoverScaffold<Content: View>: View {
             HStack {
                 Image(systemName: systemImage)
                 Text(title).font(.headline)
-                Spacer()
-                Button(action: onOpenSettings) {
-                    Image(systemName: "gearshape")
-                }
-                .buttonStyle(.borderless)
-                .help("Settings")
             }
             content()
             Divider()

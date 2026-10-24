@@ -25,6 +25,12 @@ public struct CPULoad: Equatable {
 
 // MARK: - Memory
 
+/// The kernel's memory-pressure level, the same signal Activity Monitor's
+/// "Memory Pressure" graph uses. High RAM use alone is normal on macOS.
+public enum MemoryPressure: Equatable {
+    case normal, warning, critical
+}
+
 public struct MemoryUsage: Equatable {
     public var total: UInt64
     public var used: UInt64
@@ -35,10 +41,10 @@ public struct MemoryUsage: Equatable {
     public var free: UInt64
     public var swapUsed: UInt64
     public var swapTotal: UInt64
-    public var pressure: Double // 0...1
+    public var pressure: MemoryPressure
 
     public init(total: UInt64, used: UInt64, app: UInt64, wired: UInt64, compressed: UInt64,
-                cached: UInt64, free: UInt64, swapUsed: UInt64, swapTotal: UInt64, pressure: Double) {
+                cached: UInt64, free: UInt64, swapUsed: UInt64, swapTotal: UInt64, pressure: MemoryPressure) {
         self.total = total
         self.used = used
         self.app = app
@@ -53,8 +59,11 @@ public struct MemoryUsage: Equatable {
 
     public var usedFraction: Double { total > 0 ? Double(used) / Double(total) : 0 }
 
+    /// Memory apps can get without swapping: free plus reclaimable cache.
+    public var available: UInt64 { free + cached }
+
     public static let zero = MemoryUsage(total: 0, used: 0, app: 0, wired: 0, compressed: 0,
-                                         cached: 0, free: 0, swapUsed: 0, swapTotal: 0, pressure: 0)
+                                         cached: 0, free: 0, swapUsed: 0, swapTotal: 0, pressure: .normal)
 }
 
 // MARK: - Network
@@ -231,4 +240,30 @@ public struct BluetoothDeviceInfo: Equatable, Identifiable {
     }
 
     public var id: String { address }
+}
+
+/// Readings that share a name (ten "CPU Core" probes, three "Battery" probes)
+/// collapsed into one row, in first-seen order.
+public struct SensorGroup: Equatable {
+    public var name: String
+    public var kind: SensorKind
+    public var count: Int
+    public var average: Double
+    public var max: Double
+
+    public static func make(_ readings: [SensorReading]) -> [SensorGroup] {
+        var order: [String] = []
+        var byName: [String: [SensorReading]] = [:]
+        for r in readings {
+            if byName[r.name] == nil { order.append(r.name) }
+            byName[r.name, default: []].append(r)
+        }
+        return order.map { name in
+            let rs = byName[name]!
+            let values = rs.map(\.value)
+            return SensorGroup(name: name, kind: rs[0].kind, count: rs.count,
+                               average: values.reduce(0, +) / Double(values.count),
+                               max: values.max()!)
+        }
+    }
 }

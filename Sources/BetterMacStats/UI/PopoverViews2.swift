@@ -15,7 +15,7 @@ struct BatteryPopover: View {
                 EmptyState(text: "No internal battery — this Mac runs on AC power.")
             } else {
                 let frac = Double(b.percentage) / 100.0
-                let color = b.isCharging ? Color.green : Palette.load(1 - frac)
+                let color = b.isCharging ? Color.green : Severity.battery(b.percentage).fill
                 HStack(spacing: 14) {
                     RingGauge(fraction: frac, color: color,
                               label: "\(b.percentage)%", caption: b.isCharging ? "charging" : nil)
@@ -31,7 +31,7 @@ struct BatteryPopover: View {
                     }
                 }
                 Divider()
-                if let h = b.healthPercent { StatRow("Health", "\(h)%", color: Palette.load(1 - Double(h) / 100)) }
+                if let h = b.healthPercent { StatRow("Health", "\(h)%", color: Severity.health(h).text) }
                 if let c = b.cycleCount { StatRow("Cycle count", "\(c)") }
                 if let cond = b.conditionString { StatRow("Condition", cond) }
                 if let mx = b.maxCapacity, let dz = b.designCapacity {
@@ -60,14 +60,11 @@ struct SensorsPopover: View {
             if engine.sensors.isEmpty {
                 EmptyState(text: "No sensor data is exposed on this Mac.")
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        group("Temperatures", engine.temperatureSensors)
-                        group("Fans", engine.fanSensors)
-                        group("Power", engine.powerSensors)
-                    }
+                VStack(alignment: .leading, spacing: 10) {
+                    group("Temperatures", engine.temperatureSensors)
+                    group("Fans", engine.fanSensors)
+                    group("Power", engine.powerSensors)
                 }
-                .frame(maxHeight: 320)
             }
         }
     }
@@ -77,26 +74,24 @@ struct SensorsPopover: View {
         if !readings.isEmpty {
             VStack(alignment: .leading, spacing: 5) {
                 SectionLabel(text: title)
-                ForEach(readings) { s in
-                    StatRow(s.name, value(s), color: color(s))
+                ForEach(SensorGroup.make(readings), id: \.name) { g in
+                    StatRow(g.count > 1 ? "\(g.name) ×\(g.count)" : g.name,
+                            // Show the max only when it says something the average does not.
+                            g.max - g.average >= 1 ? "\(value(g.kind, g.average)) · max \(value(g.kind, g.max))"
+                                        : value(g.kind, g.average),
+                            color: g.kind == .temperature ? Severity.temperature(g.max).text : nil)
                 }
             }
         }
     }
 
-    private func value(_ s: SensorReading) -> String {
-        switch s.kind {
-        case .temperature: return formatTemp(s.value, settings)
-        case .fan: return "\(Int(s.value)) RPM"
-        case .power: return String(format: "%.1f W", s.value)
-        default: return String(format: "%.1f %@", s.value, s.unit)
+    private func value(_ kind: SensorKind, _ v: Double) -> String {
+        switch kind {
+        case .temperature: return formatTemp(v, settings)
+        case .fan: return "\(Int(v)) RPM"
+        case .power: return String(format: "%.1f W", v)
+        default: return String(format: "%.1f", v)
         }
-    }
-
-    private func color(_ s: SensorReading) -> Color? {
-        guard s.kind == .temperature else { return nil }
-        // 30°C → green, 95°C → red
-        return Palette.load((s.value - 30) / 65)
     }
 }
 
@@ -112,9 +107,12 @@ struct BluetoothPopover: View {
             if engine.bluetooth.isEmpty {
                 EmptyState(text: "No paired Bluetooth devices.")
             } else {
-                ScrollView {
+                let devices = engine.bluetooth.sorted { $0.isConnected && !$1.isConnected }
+                // Scroll only for long lists; a ScrollView would otherwise fill
+                // its whole max height and leave a blank block under a few devices.
+                ScrollIfNeeded(devices.count > 8, maxHeight: 300) {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(engine.bluetooth.sorted { $0.isConnected && !$1.isConnected }) { dev in
+                        ForEach(devices) { dev in
                             HStack(spacing: 8) {
                                 Circle().fill(dev.isConnected ? Color.green : Color.secondary.opacity(0.4))
                                     .frame(width: 7, height: 7)
@@ -132,7 +130,6 @@ struct BluetoothPopover: View {
                         }
                     }
                 }
-                .frame(maxHeight: 300)
             }
         }
     }
@@ -165,6 +162,26 @@ struct ClockPopover: View {
                     }
                 }
             }
+        }
+    }
+}
+
+struct ScrollIfNeeded<Content: View>: View {
+    var scrolls: Bool
+    var maxHeight: CGFloat
+    @ViewBuilder var content: () -> Content
+
+    init(_ scrolls: Bool, maxHeight: CGFloat, @ViewBuilder content: @escaping () -> Content) {
+        self.scrolls = scrolls
+        self.maxHeight = maxHeight
+        self.content = content
+    }
+
+    var body: some View {
+        if scrolls {
+            ScrollView { content() }.frame(height: maxHeight)
+        } else {
+            content()
         }
     }
 }

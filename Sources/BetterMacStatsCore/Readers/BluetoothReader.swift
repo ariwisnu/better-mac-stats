@@ -13,13 +13,14 @@ public final class BluetoothReader {
         guard let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] else { return [] }
         return paired.map { dev in
             let connected = dev.isConnected()
+            let name = dev.name ?? dev.addressString ?? "Unknown"
             return BluetoothDeviceInfo(
-                name: dev.name ?? dev.addressString ?? "Unknown",
+                name: name,
                 address: dev.addressString ?? "",
                 isConnected: connected,
                 batteryPercent: nil,
                 rssi: connected ? Int(dev.rawRSSI()) : nil,
-                kind: Self.kind(major: dev.deviceClassMajor, minor: dev.deviceClassMinor)
+                kind: Self.kind(major: dev.deviceClassMajor, minor: dev.deviceClassMinor, name: name)
             )
         }
         #else
@@ -27,9 +28,9 @@ public final class BluetoothReader {
         #endif
     }
 
-    #if canImport(IOBluetooth)
     /// Map Bluetooth Class-of-Device major/minor to a coarse, user-friendly label.
-    private static func kind(major: BluetoothClassOfDevice, minor: BluetoothClassOfDevice) -> String {
+    /// Bluetooth LE devices report no class, so fall back to hints in the name.
+    static func kind(major: UInt32, minor: UInt32, name: String) -> String {
         switch major {
         case 0x01: return "Computer"
         case 0x02: return "Phone"
@@ -38,8 +39,14 @@ public final class BluetoothReader {
             if minor & 0x10 != 0 { return "Keyboard" }
             if minor & 0x20 != 0 { return "Mouse" }
             return "Input Device"
-        default: return "Device"
+        default: break
         }
+        let lower = name.lowercased()
+        let hints: [(String, String)] = [
+            ("mouse", "Mouse"), ("trackpad", "Trackpad"), ("keyboard", "Keyboard"),
+            ("watch", "Watch"), ("iphone", "Phone"), ("ipad", "Tablet"),
+            ("airpods", "Audio"), ("headphone", "Audio"), ("buds", "Audio"), ("speaker", "Audio"),
+        ]
+        return hints.first { lower.contains($0.0) }?.1 ?? "Device"
     }
-    #endif
 }

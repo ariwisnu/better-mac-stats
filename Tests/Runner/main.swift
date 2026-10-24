@@ -70,13 +70,40 @@ eq(tokyo.offsetDescription, "GMT+9", "clock Tokyo offset")
 let load = CPULoad(system: 0.5, user: 0.7, idle: 0, nice: 0.1, perCore: [])
 eq(load.total, 1.0, "cpu total clamp")
 let mem = MemoryUsage(total: 100, used: 25, app: 10, wired: 10, compressed: 5,
-                      cached: 0, free: 75, swapUsed: 0, swapTotal: 0, pressure: 0.25)
+                      cached: 0, free: 75, swapUsed: 0, swapTotal: 0, pressure: .normal)
 eq(mem.usedFraction, 0.25, "mem fraction")
 let root = DiskVolume(name: "Macintosh HD", path: "/", total: 100, free: 40, isRemovable: false)
 let ext = DiskVolume(name: "USB", path: "/Volumes/USB", total: 10, free: 1, isRemovable: true)
 let disk = DiskUsage(volumes: [ext, root], readBytesPerSec: 0, writeBytesPerSec: 0)
 eq(disk.primary?.path ?? "?", "/", "disk primary is root")
 eq(root.used, 60, "disk used")
+
+eq(mem.available, 75, "mem available = free + cached")
+
+// MARK: CPU cores
+
+eq(CPUStaticInfo(brand: "M3", physicalCores: 8, logicalCores: 8,
+                 coreTypes: ["E", "E", "E", "E", "P", "P", "P", "P"]).coresDescription, "4P + 4E", "cores Apple Silicon")
+eq(CPUStaticInfo(brand: "i9", physicalCores: 8, logicalCores: 16).coresDescription,
+   "8 cores · 16 threads", "cores Intel")
+
+// MARK: Sensor groups
+
+let groups = SensorGroup.make([
+    SensorReading(key: "a", name: "CPU Core", value: 50, unit: "°C", kind: .temperature),
+    SensorReading(key: "b", name: "Skin", value: 30, unit: "°C", kind: .temperature),
+    SensorReading(key: "c", name: "CPU Core", value: 60, unit: "°C", kind: .temperature),
+])
+eq(groups.map(\.name), ["CPU Core", "Skin"], "sensor groups keep first-seen order")
+eq(groups[0].count, 2, "sensor group count")
+eq(groups[0].average, 55, "sensor group average")
+eq(groups[0].max, 60, "sensor group max")
+
+// MARK: Bluetooth kind
+
+eq(BluetoothReader.kind(major: 0x05, minor: 0x20, name: "Magic"), "Mouse", "bt class mouse")
+eq(BluetoothReader.kind(major: 0, minor: 0, name: "BT5.1 Mouse"), "Mouse", "bt LE name hint")
+eq(BluetoothReader.kind(major: 0, minor: 0, name: "Gadget"), "Device", "bt unknown")
 
 // MARK: NetworkReader
 

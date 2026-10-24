@@ -31,7 +31,7 @@ A free and open‑source **Activity Monitor**, **[Stats](https://github.com/exel
                      │
                      ▼  left-click any item
         ╭────────────────────────────╮
-        │  CPU                    ⚙︎  │
+        │  CPU                       │
         │   ◯ 23%   System  6%       │
         │           User    17%      │
         │           Temp    61°C     │
@@ -93,13 +93,13 @@ A free and open‑source **Activity Monitor**, **[Stats](https://github.com/exel
 
 | Module | Menu bar shows | Popover detail |
 |--------|----------------|----------------|
-| 🧠 **CPU** | total load % | per-core bars, system/user split, temperature, live sparkline, chip name |
+| 🧠 **CPU** | total load % | per-core bars labelled P/E, system/user split, temperature, live sparkline, chip name |
 | 🎮 **GPU** | utilization % | utilization, VRAM in use, GPU name (Intel / AMD / Apple) |
-| 🧩 **Memory** | used % | used/free/total, app·wired·compressed·cached, swap, sparkline |
+| 🧩 **Memory** | used % | used/available, memory pressure, app·wired·compressed·cached, swap, sparkline |
 | 💽 **Disk** | primary used % | read/write throughput + sparklines, per-volume capacity bars |
 | 🌐 **Network** | ↓ / ↑ speed | up/down + sparklines, interface, Wi‑Fi/Ethernet, local IP, totals |
 | 🔋 **Battery** | % (+ charge bolt) | status, time remaining, cycle count, health, condition, temperature |
-| 🌡️ **Sensors** | hottest CPU temp | every SMC temperature, fan RPM and power sensor |
+| 🌡️ **Sensors** | hottest CPU temp | SMC temperatures grouped by sensor (average + max), fan RPM, power |
 | 📶 **Bluetooth** | connected count | paired devices, connection state, signal strength |
 | 🕒 **Clock** | current time | multiple world clocks with date and GMT offset |
 

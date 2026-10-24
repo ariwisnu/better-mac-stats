@@ -82,7 +82,7 @@ final class ModelTests: XCTestCase {
 
     func testMemoryFraction() {
         let m = MemoryUsage(total: 100, used: 25, app: 10, wired: 10, compressed: 5,
-                            cached: 0, free: 75, swapUsed: 0, swapTotal: 0, pressure: 0.25)
+                            cached: 0, free: 75, swapUsed: 0, swapTotal: 0, pressure: .normal)
         XCTAssertEqual(m.usedFraction, 0.25)
     }
 
@@ -92,6 +92,34 @@ final class ModelTests: XCTestCase {
         let usage = DiskUsage(volumes: [ext, root], readBytesPerSec: 0, writeBytesPerSec: 0)
         XCTAssertEqual(usage.primary?.path, "/")
         XCTAssertEqual(root.used, 60)
+    }
+}
+
+final class DisplayModelTests: XCTestCase {
+    func testCoresDescription() {
+        let m3 = CPUStaticInfo(brand: "M3", physicalCores: 8, logicalCores: 8,
+                               coreTypes: ["E", "E", "E", "E", "P", "P", "P", "P"])
+        XCTAssertEqual(m3.coresDescription, "4P + 4E")
+        XCTAssertEqual(CPUStaticInfo(brand: "i9", physicalCores: 8, logicalCores: 16).coresDescription,
+                       "8 cores · 16 threads")
+    }
+
+    func testSensorGroups() {
+        let groups = SensorGroup.make([
+            SensorReading(key: "a", name: "CPU Core", value: 50, unit: "°C", kind: .temperature),
+            SensorReading(key: "b", name: "Skin", value: 30, unit: "°C", kind: .temperature),
+            SensorReading(key: "c", name: "CPU Core", value: 60, unit: "°C", kind: .temperature),
+        ])
+        XCTAssertEqual(groups.map(\.name), ["CPU Core", "Skin"])
+        XCTAssertEqual(groups[0].count, 2)
+        XCTAssertEqual(groups[0].average, 55)
+        XCTAssertEqual(groups[0].max, 60)
+    }
+
+    func testBluetoothKind() {
+        XCTAssertEqual(BluetoothReader.kind(major: 0x05, minor: 0x20, name: "Magic"), "Mouse")
+        XCTAssertEqual(BluetoothReader.kind(major: 0, minor: 0, name: "BT5.1 Mouse"), "Mouse")
+        XCTAssertEqual(BluetoothReader.kind(major: 0, minor: 0, name: "Gadget"), "Device")
     }
 }
 

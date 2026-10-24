@@ -39,7 +39,12 @@ public final class MemoryReader {
         var xlen = MemoryLayout<xsw_usage>.size
         sysctlbyname("vm.swapusage", &xsw, &xlen, nil, 0)
 
-        let pressure = total > 0 ? min(1, Double(used) / Double(total)) : 0
+        let pressure: MemoryPressure
+        switch Sysctl.int32("kern.memorystatus_vm_pressure_level") {
+        case 4: pressure = .critical
+        case 2: pressure = .warning
+        default: pressure = .normal
+        }
         return MemoryUsage(total: total, used: used, app: active, wired: wired,
                            compressed: compressed, cached: cached, free: free,
                            swapUsed: xsw.xsu_used, swapTotal: xsw.xsu_total, pressure: pressure)

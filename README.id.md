@@ -31,7 +31,7 @@ Alternatif **Activity Monitor**, **[Stats](https://github.com/exelban/stats)** d
                      │
                      ▼  klik kiri item mana pun
         ╭────────────────────────────╮
-        │  CPU                    ⚙︎  │
+        │  CPU                       │
         │   ◯ 23%   System  6%       │
         │           User    17%      │
         │           Temp    61°C     │
@@ -93,13 +93,13 @@ Alternatif **Activity Monitor**, **[Stats](https://github.com/exelban/stats)** d
 
 | Modul | Tampil di menu bar | Detail popover |
 |-------|--------------------|----------------|
-| 🧠 **CPU** | total load % | bar per‑core, pisah system/user, suhu, sparkline live, nama chip |
+| 🧠 **CPU** | total load % | bar per‑core berlabel P/E, pisah system/user, suhu, sparkline live, nama chip |
 | 🎮 **GPU** | utilisasi % | utilisasi, VRAM terpakai, nama GPU (Intel / AMD / Apple) |
-| 🧩 **Memory** | terpakai % | used/free/total, app·wired·compressed·cached, swap, sparkline |
+| 🧩 **Memory** | terpakai % | used/available, memory pressure, app·wired·compressed·cached, swap, sparkline |
 | 💽 **Disk** | terpakai % (volume utama) | throughput baca/tulis + sparkline, bar kapasitas tiap volume |
 | 🌐 **Network** | kecepatan ↓ / ↑ | up/down + sparkline, interface, Wi‑Fi/Ethernet, IP lokal, total |
 | 🔋 **Battery** | % (+ ikon ngecas) | status, sisa waktu, cycle count, kesehatan, kondisi, suhu |
-| 🌡️ **Sensors** | suhu CPU tertinggi | semua suhu SMC, RPM kipas, dan sensor daya |
+| 🌡️ **Sensors** | suhu CPU tertinggi | suhu SMC dikelompokkan per sensor (rata‑rata + maks), RPM kipas, daya |
 | 📶 **Bluetooth** | jumlah terhubung | perangkat ter‑pairing, status koneksi, kekuatan sinyal |
 | 🕒 **Clock** | jam saat ini | banyak zona waktu dunia lengkap dengan tanggal & offset GMT |
 
